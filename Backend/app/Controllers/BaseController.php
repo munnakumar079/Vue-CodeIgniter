@@ -30,16 +30,20 @@ abstract class BaseController extends Controller
     /**
      * @return void
      */
-    public function initController(RequestInterface $request, ResponseInterface $response, LoggerInterface $logger)
-    {
-        // Load here all helpers you want to be available in your controllers that extend BaseController.
-        // Caution: Do not put the this below the parent::initController() call below.
-        // $this->helpers = ['form', 'url'];
+ public function initController(
+    RequestInterface $request,
+    ResponseInterface $response,
+    LoggerInterface $logger
+) {
+    parent::initController($request, $response, $logger);
 
-        // Caution: Do not edit this line.
-        parent::initController($request, $response, $logger);
+    header('Access-Control-Allow-Origin: http://localhost:5173');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization');
+    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 
-        // Preload any models, libraries, etc, here.
-        // $this->session = service('session');
+    if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+        http_response_code(200);
+        exit();
     }
+}
 }

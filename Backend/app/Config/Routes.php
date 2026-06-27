@@ -2,6 +2,10 @@
 
 use CodeIgniter\Router\RouteCollection;
 
+$routes->options('api/(:any)', static function () {
+    return service('response')->setStatusCode(200);
+});
+
 $routes->group('api', function($routes) {
 
     $routes->post('register', 'AuthController::register');

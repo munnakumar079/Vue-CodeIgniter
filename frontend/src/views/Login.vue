@@ -34,7 +34,7 @@ const handleLogin = async () => {
       toast.success("Login Successful");
 
       setTimeout(() => {
-        router.push("/dashboard");
+        router.push("/EmployeeList");
       }, 1000);
     }
   } catch (error) {

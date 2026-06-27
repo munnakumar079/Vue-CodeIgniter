@@ -8,7 +8,7 @@ class Cors extends BaseConfig
 {
     public array $default = [
         'allowedOrigins' => [
-            'http://localhost:5173',
+            '*',
         ],
 
         'allowedOriginsPatterns' => [],
@@ -21,14 +21,15 @@ class Cors extends BaseConfig
 
         'exposedHeaders' => [],
 
-        'allowedMethods' => [
-            'GET',
-            'POST',
-            'PUT',
-            'PATCH',
-            'DELETE',
-            'OPTIONS',
-        ],
+        // 'allowedMethods' => [
+        //     'GET',
+        //     'POST',
+        //     'PUT',
+        //     'PATCH',
+        //     'DELETE',
+        //     'OPTIONS',
+        // ],
+        'allowedMethods' => ['*'],
 
         'maxAge' => 7200,
     ];
