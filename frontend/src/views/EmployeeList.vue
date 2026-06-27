@@ -1,26 +1,26 @@
 <template>
-  <div class="page-container">
+  <div class="container">
+
     <EmployeeFilter
-      @search="handleSearch"
-      @status-change="handleStatusChange"
-      @add="openAddModal"
+      @add="openModal"
     />
 
-    <Loader v-if="loading" />
+    <EmployeeSkeleton v-if="loading" />
 
     <template v-else>
+
       <EmployeeTable
-        :employees="paginatedEmployees"
-        @edit="handleEdit"
-        @delete="handleDelete"
+        :employees="employees"
+        @edit="editEmployee"
+        @delete="deleteEmployee"
       />
 
-      <Pagination
+      <EmployeePagination
         :currentPage="currentPage"
-        :totalItems="filteredEmployees.length"
-        :itemsPerPage="itemsPerPage"
+        :totalItems="employees.length"
         @page-change="changePage"
       />
+
     </template>
 
     <EmployeeModal
@@ -29,173 +29,115 @@
       @close="closeModal"
       @save="saveEmployee"
     />
+
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, onMounted } from "vue";
+import { useToast } from "vue-toastification";
 
-import EmployeeFilter from "../components/EmployeeFilter.vue";
-import EmployeeTable from "../components/EmployeeTable.vue";
-import EmployeeModal from "../components/EmployeeModal.vue";
-import Pagination from "../components/Pagination.vue";
-import Loader from "../components/Loader.vue";
+import EmployeeFilter from "@/components/EmployeeFilter.vue";
+import EmployeeTable from "@/components/EmployeeTable.vue";
+import EmployeeModal from "@/components/EmployeeModal.vue";
+import Pagination from "@/components/Pagination.vue";
+import Loader from "@/components/Loader.vue";
 
-const loading = ref(true);
+import {
+  getEmployees,
+  createEmployee,
+  updateEmployee,
+  deleteEmployeeApi,
+} from "@/services/employee";
+
+const toast = useToast();
 
 const showModal = ref(false);
-
 const selectedEmployee = ref(null);
+
+const employees = ref([]);
 
 const currentPage = ref(1);
 
-const itemsPerPage = 10;
+const loading = ref(false);
 
-const searchKeyword = ref("");
+const fetchEmployees = async () => {
+  try {
+    loading.value = true;
 
-const selectedStatus = ref("");
+    const response = await getEmployees();
 
-const employees = ref([
-  {
-    id: 1,
-    name: "Rahul Kumar",
-    email: "rahul@gmail.com",
-    department: "IT",
-    status: "active",
-  },
-  {
-    id: 2,
-    name: "Amit Singh",
-    email: "amit@gmail.com",
-    department: "HR",
-    status: "inactive",
-  },
-  {
-    id: 3,
-    name: "Rohit Sharma",
-    email: "rohit@gmail.com",
-    department: "Finance",
-    status: "active",
-  },
-  {
-    id: 4,
-    name: "Saurabh Kumar",
-    email: "saurabh@gmail.com",
-    department: "Marketing",
-    status: "active",
-  },
-  {
-    id: 5,
-    name: "Ankit Raj",
-    email: "ankit@gmail.com",
-    department: "IT",
-    status: "inactive",
-  },
-]);
-
-const filteredEmployees = computed(() => {
-  return employees.value.filter((employee) => {
-    const matchSearch =
-      employee.name
-        .toLowerCase()
-        .includes(searchKeyword.value.toLowerCase()) ||
-      employee.email
-        .toLowerCase()
-        .includes(searchKeyword.value.toLowerCase());
-
-    const matchStatus =
-      !selectedStatus.value ||
-      employee.status === selectedStatus.value;
-
-    return matchSearch && matchStatus;
-  });
-});
-
-const paginatedEmployees = computed(() => {
-  const start =
-    (currentPage.value - 1) * itemsPerPage;
-
-  const end = start + itemsPerPage;
-
-  return filteredEmployees.value.slice(start, end);
-});
-
-const handleSearch = (value) => {
-  searchKeyword.value = value;
-  currentPage.value = 1;
+    employees.value = response.data.data;
+  } catch (error) {
+    toast.error("Failed to load employees");
+    console.error(error);
+  } finally {
+    loading.value = false;
+  }
 };
 
-const handleStatusChange = (value) => {
-  selectedStatus.value = value;
-  currentPage.value = 1;
+onMounted(() => {
+  fetchEmployees();
+});
+
+const openModal = () => {
+  selectedEmployee.value = null;
+  showModal.value = true;
+};
+
+const closeModal = () => {
+  showModal.value = false;
+};
+
+const editEmployee = (employee) => {
+  selectedEmployee.value = employee;
+  showModal.value = true;
+};
+
+const deleteEmployee = async (employee) => {
+  try {
+    await deleteEmployeeApi(employee.id);
+
+    toast.success("Employee deleted successfully");
+
+    fetchEmployees();
+  } catch (error) {
+    toast.error("Delete failed");
+    console.error(error);
+  }
+};
+
+const saveEmployee = async (employee) => {
+  try {
+
+    if (employee.id) {
+      await updateEmployee(
+        employee.id,
+        employee
+      );
+
+      toast.success(
+        "Employee updated successfully"
+      );
+    } else {
+      await createEmployee(employee);
+
+      toast.success(
+        "Employee created successfully"
+      );
+    }
+
+    closeModal();
+
+    fetchEmployees();
+
+  } catch (error) {
+    toast.error("Operation failed");
+    console.error(error);
+  }
 };
 
 const changePage = (page) => {
   currentPage.value = page;
 };
-
-const openAddModal = () => {
-  selectedEmployee.value = null;
-  showModal.value = true;
-};
-
-const handleEdit = (employee) => {
-  selectedEmployee.value = employee;
-  showModal.value = true;
-};
-
-const handleDelete = (employee) => {
-  const confirmDelete = confirm(
-    `Delete ${employee.name}?`
-  );
-
-  if (!confirmDelete) return;
-
-  employees.value = employees.value.filter(
-    (item) => item.id !== employee.id
-  );
-};
-
-const saveEmployee = (employee) => {
-  if (employee.id) {
-    const index = employees.value.findIndex(
-      (item) => item.id === employee.id
-    );
-
-    if (index !== -1) {
-      employees.value[index] = employee;
-    }
-  } else {
-    employee.id = Date.now();
-
-    employees.value.unshift(employee);
-  }
-
-  closeModal();
-};
-
-const closeModal = () => {
-  showModal.value = false;
-  selectedEmployee.value = null;
-};
-
-onMounted(() => {
-  setTimeout(() => {
-    loading.value = false;
-  }, 1500);
-});
 </script>
-
-<style scoped>
-.page-container {
-  min-height: 100vh;
-  background: #f8fafc;
-  padding: 30px;
-}
-
-@media (max-width: 768px) {
-  .page-container {
-    padding: 15px;
-  }
-}
-</style>

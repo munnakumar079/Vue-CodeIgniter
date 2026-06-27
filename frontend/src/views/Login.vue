@@ -1,3 +1,53 @@
+<script setup>
+import { ref } from "vue";
+import { useRouter } from "vue-router";
+import { useToast } from "vue-toastification";
+import { loginUser } from "@/services/auth";
+
+const router = useRouter();
+const toast = useToast();
+
+const email = ref("");
+const password = ref("");
+const loading = ref(false);
+
+const handleLogin = async () => {
+  try {
+    loading.value = true;
+
+    const response = await loginUser({
+      email: email.value,
+      password: password.value,
+    });
+
+    if (response.status) {
+      localStorage.setItem(
+        "token",
+        response.token
+      );
+
+      localStorage.setItem(
+        "user",
+        JSON.stringify(response.user)
+      );
+
+      toast.success("Login Successful");
+
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 1000);
+    }
+  } catch (error) {
+    toast.error(
+      error?.response?.data?.message ||
+      "Login Failed"
+    );
+  } finally {
+    loading.value = false;
+  }
+};
+</script>
+
 <template>
   <div class="auth-container">
     <div class="auth-card">
@@ -6,33 +56,41 @@
         <p>Login to manage employees</p>
       </div>
 
-      <form>
+      <form @submit.prevent="handleLogin">
         <div class="form-group">
           <label>Email Address</label>
+
           <input
+            v-model="email"
             type="email"
             placeholder="Enter your email"
+            required
           />
         </div>
 
         <div class="form-group">
           <label>Password</label>
+
           <input
+            v-model="password"
             type="password"
             placeholder="Enter your password"
+            required
           />
         </div>
 
         <button
           type="submit"
           class="auth-btn"
+          :disabled="loading"
         >
-          Login
+          {{ loading ? "Logging in..." : "Login" }}
         </button>
       </form>
 
       <div class="auth-footer">
         Don't have an account?
+
         <router-link to="/register">
           Register
         </router-link>
@@ -57,7 +115,7 @@
   background: white;
   padding: 35px;
   border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0,0,0,.08);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
 }
 
 .auth-header {
@@ -89,6 +147,12 @@
   border: 1px solid #dbe2ea;
   border-radius: 10px;
   padding: 0 15px;
+  box-sizing: border-box;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #2563eb;
 }
 
 .auth-btn {
@@ -103,6 +167,11 @@
   margin-top: 10px;
 }
 
+.auth-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 .auth-footer {
   margin-top: 20px;
   text-align: center;
@@ -111,5 +180,6 @@
 .auth-footer a {
   color: #2563eb;
   font-weight: 600;
+  text-decoration: none;
 }
 </style>
